@@ -3,11 +3,14 @@ from discord.ext import commands
 import random
 import json
 import os
+import asyncio
+from aiohttp import web  # For HTTP server to pass Koyeb health check
 
 intents = discord.Intents.default()
 intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
+# Roleplay responses (unchanged, 25 commands)
 roleplay_responses = {
     "assfuck": [
         "{user} is gripping {target}'s hips tight, slamming into your ass with deep, relentless thrusts. 😈",
@@ -243,8 +246,11 @@ channel_map = {
 }
 
 def save_urls(gif_urls):
-    with open("gif_urls.json", "w") as f:
-        json.dump(gif_urls, f, indent=4)
+    try:
+        with open("gif_urls.json", "w") as f:
+            json.dump(gif_urls, f, indent=4)
+    except Exception as e:
+        print(f"Failed to save gif_urls.json: {e}")
 
 def load_urls():
     if os.path.exists("gif_urls.json"):
@@ -307,4 +313,24 @@ for cmd in roleplay_responses.keys():
 async def on_ready():
     print(f"{bot.user.name} is ready and online!")
 
-bot.run(os.getenv("DISCORD_TOKEN"))
+# Minimal HTTP server for Koyeb health check
+async def health_check(request):
+    return web.Response(text="Bot is healthy!")
+
+async def start_health_server():
+    app = web.Application()
+    app.add_routes([web.get('/', health_check)])
+    runner = web.AppRunner(app)
+    await runner.setup()
+    site = web.TCPSite(runner, '0.0.0.0', 8000)
+    await site.start()
+
+# Run both the bot and the health check server
+async def main():
+    await asyncio.gather(
+        bot.start(os.getenv("DISCORD_TOKEN")),
+        start_health_server()
+    )
+
+if __name__ == "__main__":
+    asyncio.run(main())
