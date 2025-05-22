@@ -4,11 +4,23 @@ import random
 import json
 import os
 import asyncio
-from aiohttp import web  # For HTTP server to pass Koyeb health check
+from aiohttp import web
+import requests
+import base64
 
 intents = discord.Intents.default()
 intents.message_content = True
-bot = commands.Bot(command_prefix="!", intents=intents, help_command=None)  # Disable default help command
+bot = commands.Bot(command_prefix="!", intents=intents, help_command=None)
+
+# GitHub URLs for persistent storage (replace with your raw URLs)
+RAW_NSFW_GIF_URL = "https://raw.githubusercontent.com/ARZY112/Mikku/main/nsfw_gif_urls.json"
+RAW_NON_NSFW_GIF_URL = "https://raw.githubusercontent.com/ARZY112/Mikku/main/non_nsfw_gif_urls.json"
+
+# GitHub API setup for updating files
+GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
+GITHUB_REPO = "ARZY112/Mikku"
+NSFW_GIF_FILE_PATH = "nsfw_gif_urls.json"
+NON_NSFW_GIF_FILE_PATH = "non_nsfw_gif_urls.json"
 
 # NSFW Roleplay responses
 roleplay_responses = {
@@ -309,6 +321,7 @@ non_nsfw_responses = {
     "slap": "{user} slaps {target} playfully. 👋"
 }
 
+# Non-NSFW channel map
 non_nsfw_channel_map = {
     "kiss": "1374992686808957050",
     "cuddle": "1374992738264813589",
@@ -317,21 +330,43 @@ non_nsfw_channel_map = {
     "slap": "1374992799178559549"
 }
 
-def save_urls(gif_urls, filename="gif_urls.json"):
+def fetch_urls(url):
     try:
-        with open(filename, "w") as f:
-            json.dump(gif_urls, f, indent=4)
+        response = requests.get(url)
+        response.raise_for_status()
+        return response.json()
     except Exception as e:
-        print(f"Failed to save {filename}: {e}")
+        print(f"Failed to fetch URLs from {url}: {e}")
+        return {cmd: [] for cmd in (list(roleplay_responses.keys()) if url == RAW_NSFW_GIF_URL else list(non_nsfw_responses.keys()))}
 
-def load_urls(filename="gif_urls.json"):
-    if os.path.exists(filename):
-        with open(filename, "r") as f:
-            return json.load(f)
-    return {cmd: [] for cmd in list(roleplay_responses.keys()) + list(non_nsfw_responses.keys())}
+def update_github_file(file_path, content, commit_message):
+    try:
+        # Get the current file SHA
+        headers = {
+            "Authorization": f"token {GITHUB_TOKEN}",
+            "Accept": "application/vnd.github.v3+json"
+        }
+        url = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{file_path}"
+        response = requests.get(url, headers=headers)
+        response.raise_for_status()
+        sha = response.json()["sha"]
 
-nsfw_gif_urls = load_urls("nsfw_gif_urls.json")
-non_nsfw_gif_urls = load_urls("non_nsfw_gif_urls.json")
+        # Update the file
+        data = {
+            "message": commit_message,
+            "content": base64.b64encode(json.dumps(content, indent=4).encode()).decode(),
+            "sha": sha,
+            "branch": "main"
+        }
+        response = requests.put(url, headers=headers, json=data)
+        response.raise_for_status()
+        print(f"Updated {file_path} on GitHub")
+    except Exception as e:
+        print(f"Failed to update {file_path} on GitHub: {e}")
+
+# Load URLs from GitHub
+nsfw_gif_urls = fetch_urls(RAW_NSFW_GIF_URL)
+non_nsfw_gif_urls = fetch_urls(RAW_NON_NSFW_GIF_URL)
 
 @bot.event
 async def on_message(message):
@@ -345,7 +380,7 @@ async def on_message(message):
                         nsfw_gif_urls[command] = []
                     if attachment.url not in nsfw_gif_urls[command]:
                         nsfw_gif_urls[command].append(attachment.url)
-                        save_urls(nsfw_gif_urls, "nsfw_gif_urls.json")
+                        update_github_file(NSFW_GIF_FILE_PATH, nsfw_gif_urls, f"Add GIF for {command}")
                         await message.channel.send(f"Added {attachment.filename} to {command} GIFs!")
                     break
     for command, channel_id in non_nsfw_channel_map.items():
@@ -356,7 +391,7 @@ async def on_message(message):
                         non_nsfw_gif_urls[command] = []
                     if attachment.url not in non_nsfw_gif_urls[command]:
                         non_nsfw_gif_urls[command].append(attachment.url)
-                        save_urls(non_nsfw_gif_urls, "non_nsfw_gif_urls.json")
+                        update_github_file(NON_NSFW_GIF_FILE_PATH, non_nsfw_gif_urls, f"Add GIF for {command}")
                         await message.channel.send(f"Added {attachment.filename} to {command} GIFs!")
                     break
     await bot.process_commands(message)
@@ -424,16 +459,18 @@ async def help(ctx):
         description="Here are all the commands you can use with Mikasa!",
         color=discord.Color.green()
     )
+    # NSFW Commands in one line
     nsfw_commands = sorted(roleplay_responses.keys())
     embed.add_field(
         name="🔞 NSFW Commands (NSFW Channels Only)",
-        value="`" + "`, `".join(nsfw_commands) + "`",
+        value=", ".join([f"`{cmd}`" for cmd in nsfw_commands]),
         inline=False
     )
+    # Non-NSFW Commands in one line
     non_nsfw_commands = sorted(non_nsfw_responses.keys())
     embed.add_field(
         name="💖 Non-NSFW Commands",
-        value="`" + "`, `".join(non_nsfw_commands) + "`",
+        value=", ".join([f"`{cmd}`" for cmd in non_nsfw_commands]),
         inline=False
     )
     embed.set_footer(text="Use !command @user to interact! Example: !kiss @user")
