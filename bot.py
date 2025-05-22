@@ -8,9 +8,9 @@ from aiohttp import web  # For HTTP server to pass Koyeb health check
 
 intents = discord.Intents.default()
 intents.message_content = True
-bot = commands.Bot(command_prefix="!", intents=intents)
+bot = commands.Bot(command_prefix="!", intents=intents, help_command=None)  # Disable default help command
 
-# NSFW Roleplay responses (existing + new commands)
+# NSFW Roleplay responses
 roleplay_responses = {
     "assfuck": [
         "{user} is gripping {target}'s hips tight, slamming into your ass with deep, relentless thrusts. 😈",
@@ -215,7 +215,6 @@ roleplay_responses = {
         "{user} is rubbing themselves in front of {target}, driving you wild with their show. 🔥",
         "{target}, {user} is getting off for you, their climax leaving you speechless. 😈"
     ],
-    # New NSFW commands
     "tease": [
         "{user} is teasing {target}, their fingers brushing over your sensitive spots, making you squirm. 😈",
         "{target}, {user} is whispering naughty things while teasing your body, driving you wild. 🔥",
@@ -256,6 +255,22 @@ roleplay_responses = {
         "{user} is tracing their tongue over {target}'s skin, your moans filling the air. 🔥",
         "{target}, {user} is licking you, their wet tongue teasing your every nerve. 😈"
     ],
+    "grind": [
+        "{user} is grinding against {target}, their hips pressing hard as you feel their heat. 😈",
+        "{target}, {user} is rubbing themselves on you, grinding with slow, teasing movements. 🔥",
+        "{user} is grinding their body against {target}, making you ache with desire. 💦",
+        "{target}, {user} is grinding on your lap, their rhythm driving you wild. 😏",
+        "{user} is pressing themselves against {target}, grinding with raw passion. 🔥",
+        "{target}, {user} is grinding against you, their body teasing yours to the edge. 😈"
+    ],
+    "thighfuck": [
+        "{user} is sliding their cock between {target}'s thighs, your soft skin gripping them tight. 😈",
+        "{target}, {user} is fucking your thighs, their dick throbbing as they thrust. 🔥",
+        "{user} is using {target}'s thighs, their movements slow and teasing as they grind. 💦",
+        "{target}, {user} is thighfucking you, your legs squeezing them with every thrust. 😏",
+        "{user} is thrusting between {target}'s thighs, your warmth driving them wild. 🔥",
+        "{target}, {user} is fucking your thighs, their groans filling the air. 😈"
+    ],
     "strip": [
         "{user} is stripping {target} slowly, peeling off your clothes with a naughty grin. 😈",
         "{target}, {user} is undressing you, their hands lingering on your skin as they strip you. 🔥",
@@ -266,7 +281,7 @@ roleplay_responses = {
     ]
 }
 
-# Channel map for NSFW commands (updated with new commands)
+# Channel map for NSFW commands
 channel_map = {
     "assfuck": "1374374128831697040",
     "facefuck": "1374374913036648498",
@@ -293,15 +308,17 @@ channel_map = {
     "finger": "1374769813326528512",
     "footjob": "1374769848680321074",
     "masturbate": "1374769888442187926",
-    "tease": "1374997829814063165",
-    "legspread": "1374998253426180116",
-    "choke": "1374998299702202430",
-    "bite": "1374998343956303924",
-    "lick": "1374998369373524040",
-    "strip": "1374998973739438214"
+    "tease": "ADD_CHANNEL_ID_HERE",
+    "legspread": "ADD_CHANNEL_ID_HERE",
+    "choke": "ADD_CHANNEL_ID_HERE",
+    "bite": "ADD_CHANNEL_ID_HERE",
+    "lick": "ADD_CHANNEL_ID_HERE",
+    "grind": "ADD_CHANNEL_ID_HERE",
+    "thighfuck": "ADD_CHANNEL_ID_HERE",
+    "strip": "ADD_CHANNEL_ID_HERE"
 }
 
-# Non-NSFW responses (simple, no detailed lines)
+# Non-NSFW responses
 non_nsfw_responses = {
     "kiss": "{user} is kissing {target} softly. 💋",
     "cuddle": "{user} is cuddling {target} warmly. 🥰",
@@ -310,13 +327,12 @@ non_nsfw_responses = {
     "slap": "{user} slaps {target} playfully. 👋"
 }
 
-# Channel map for non-NSFW commands (for GIFs, optional)
 non_nsfw_channel_map = {
-    "kiss": "1374992686808957050",  # Optional: Create channels for non-NSFW GIFs
-    "cuddle": "1374992738264813589",
-    "hug": "1374992767234867273",
-    "cry": "1374992832418414613",
-    "slap": "1374992799178559549"
+    "kiss": "ADD_CHANNEL_ID_HERE",
+    "cuddle": "ADD_CHANNEL_ID_HERE",
+    "hug": "ADD_CHANNEL_ID_HERE",
+    "cry": "ADD_CHANNEL_ID_HERE",
+    "slap": "ADD_CHANNEL_ID_HERE"
 }
 
 def save_urls(gif_urls, filename="gif_urls.json"):
@@ -332,7 +348,6 @@ def load_urls(filename="gif_urls.json"):
             return json.load(f)
     return {cmd: [] for cmd in list(roleplay_responses.keys()) + list(non_nsfw_responses.keys())}
 
-# Separate GIF storage for NSFW and non-NSFW
 nsfw_gif_urls = load_urls("nsfw_gif_urls.json")
 non_nsfw_gif_urls = load_urls("non_nsfw_gif_urls.json")
 
@@ -340,7 +355,6 @@ non_nsfw_gif_urls = load_urls("non_nsfw_gif_urls.json")
 async def on_message(message):
     if message.author == bot.user:
         return
-    # NSFW GIFs
     for command, channel_id in channel_map.items():
         if str(message.channel.id) == channel_id:
             for attachment in message.attachments:
@@ -352,7 +366,6 @@ async def on_message(message):
                         save_urls(nsfw_gif_urls, "nsfw_gif_urls.json")
                         await message.channel.send(f"Added {attachment.filename} to {command} GIFs!")
                     break
-    # Non-NSFW GIFs
     for command, channel_id in non_nsfw_channel_map.items():
         if str(message.channel.id) == channel_id:
             for attachment in message.attachments:
@@ -374,7 +387,6 @@ def is_nsfw_channel():
         return True
     return commands.check(predicate)
 
-# NSFW roleplay commands
 def create_roleplay_command(command_name):
     async def roleplay_command(ctx, member: discord.Member = None):
         if member is None:
@@ -396,7 +408,6 @@ def create_roleplay_command(command_name):
     roleplay_command.__name__ = command_name
     return roleplay_command
 
-# Non-NSFW commands
 def create_non_nsfw_command(command_name):
     async def non_nsfw_command(ctx, member: discord.Member = None):
         if member is None:
@@ -413,20 +424,17 @@ def create_non_nsfw_command(command_name):
             embed.set_image(url=gif)
         else:
             embed.set_footer(text="No GIFs found for this command!")
-            embed.set_image(url="https://media.giphy.com/media/26ufnwz3wDUli7GU0/giphy.gif")  # Default non-NSFW GIF
+            embed.set_image(url="https://media.giphy.com/media/26ufnwz3wDUli7GU0/giphy.gif")
         await ctx.send(embed=embed)
     non_nsfw_command.__name__ = command_name
     return non_nsfw_command
 
-# Register NSFW commands
 for cmd in roleplay_responses.keys():
     bot.command()(is_nsfw_channel()(create_roleplay_command(cmd)))
 
-# Register non-NSFW commands
 for cmd in non_nsfw_responses.keys():
     bot.command()(create_non_nsfw_command(cmd))
 
-# Help command
 @bot.command()
 async def help(ctx):
     embed = discord.Embed(
@@ -434,14 +442,12 @@ async def help(ctx):
         description="Here are all the commands you can use with Mikasa!",
         color=discord.Color.green()
     )
-    # NSFW commands
     nsfw_commands = sorted(roleplay_responses.keys())
     embed.add_field(
         name="🔞 NSFW Commands (NSFW Channels Only)",
         value="`" + "`, `".join(nsfw_commands) + "`",
         inline=False
     )
-    # Non-NSFW commands
     non_nsfw_commands = sorted(non_nsfw_responses.keys())
     embed.add_field(
         name="💖 Non-NSFW Commands",
@@ -455,7 +461,6 @@ async def help(ctx):
 async def on_ready():
     print(f"{bot.user.name} is ready and online!")
 
-# Minimal HTTP server for Koyeb health check
 async def health_check(request):
     return web.Response(text="Bot is healthy!")
 
@@ -467,7 +472,6 @@ async def start_health_server():
     site = web.TCPSite(runner, '0.0.0.0', 8000)
     await site.start()
 
-# Run both the bot and the health check server
 async def main():
     await asyncio.gather(
         bot.start(os.getenv("DISCORD_TOKEN")),
