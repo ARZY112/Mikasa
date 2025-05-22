@@ -22,7 +22,7 @@ GITHUB_REPO = "ARZY112/Mikku"
 NSFW_GIF_FILE_PATH = "nsfw_gif_urls.json"
 NON_NSFW_GIF_FILE_PATH = "non_nsfw_gif_urls.json"
 
-# NSFW Roleplay responses
+# NSFW Roleplay responses (grind and thighfuck removed)
 roleplay_responses = {
     "assfuck": [
         "{user} is gripping {target}'s hips tight, slamming into your ass with deep, relentless thrusts. 😈",
@@ -277,7 +277,7 @@ roleplay_responses = {
     ]
 }
 
-# Channel map for NSFW commands
+# Channel map for NSFW commands (grind and thighfuck removed, new IDs added)
 channel_map = {
     "assfuck": "1374374128831697040",
     "facefuck": "1374374913036648498",
@@ -321,7 +321,7 @@ non_nsfw_responses = {
     "slap": "{user} slaps {target} playfully. 👋"
 }
 
-# Non-NSFW channel map
+# Non-NSFW channel map (updated with new IDs)
 non_nsfw_channel_map = {
     "kiss": "1374992686808957050",
     "cuddle": "1374992738264813589",
@@ -459,18 +459,16 @@ async def help(ctx):
         description="Here are all the commands you can use with Mikasa!",
         color=discord.Color.green()
     )
-    # NSFW Commands in one line
     nsfw_commands = sorted(roleplay_responses.keys())
     embed.add_field(
         name="🔞 NSFW Commands (NSFW Channels Only)",
-        value=", ".join([f"`{cmd}`" for cmd in nsfw_commands]),
+        value="`" + "`, `".join(nsfw_commands) + "`",
         inline=False
     )
-    # Non-NSFW Commands in one line
     non_nsfw_commands = sorted(non_nsfw_responses.keys())
     embed.add_field(
         name="💖 Non-NSFW Commands",
-        value=", ".join([f"`{cmd}`" for cmd in non_nsfw_commands]),
+        value="`" + "`, `".join(non_nsfw_commands) + "`",
         inline=False
     )
     embed.set_footer(text="Use !command @user to interact! Example: !kiss @user")
