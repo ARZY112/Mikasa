@@ -255,22 +255,6 @@ roleplay_responses = {
         "{user} is tracing their tongue over {target}'s skin, your moans filling the air. 🔥",
         "{target}, {user} is licking you, their wet tongue teasing your every nerve. 😈"
     ],
-    "grind": [
-        "{user} is grinding against {target}, their hips pressing hard as you feel their heat. 😈",
-        "{target}, {user} is rubbing themselves on you, grinding with slow, teasing movements. 🔥",
-        "{user} is grinding their body against {target}, making you ache with desire. 💦",
-        "{target}, {user} is grinding on your lap, their rhythm driving you wild. 😏",
-        "{user} is pressing themselves against {target}, grinding with raw passion. 🔥",
-        "{target}, {user} is grinding against you, their body teasing yours to the edge. 😈"
-    ],
-    "thighfuck": [
-        "{user} is sliding their cock between {target}'s thighs, your soft skin gripping them tight. 😈",
-        "{target}, {user} is fucking your thighs, their dick throbbing as they thrust. 🔥",
-        "{user} is using {target}'s thighs, their movements slow and teasing as they grind. 💦",
-        "{target}, {user} is thighfucking you, your legs squeezing them with every thrust. 😏",
-        "{user} is thrusting between {target}'s thighs, your warmth driving them wild. 🔥",
-        "{target}, {user} is fucking your thighs, their groans filling the air. 😈"
-    ],
     "strip": [
         "{user} is stripping {target} slowly, peeling off your clothes with a naughty grin. 😈",
         "{target}, {user} is undressing you, their hands lingering on your skin as they strip you. 🔥",
@@ -308,14 +292,12 @@ channel_map = {
     "finger": "1374769813326528512",
     "footjob": "1374769848680321074",
     "masturbate": "1374769888442187926",
-    "tease": "ADD_CHANNEL_ID_HERE",
-    "legspread": "ADD_CHANNEL_ID_HERE",
-    "choke": "ADD_CHANNEL_ID_HERE",
-    "bite": "ADD_CHANNEL_ID_HERE",
-    "lick": "ADD_CHANNEL_ID_HERE",
-    "grind": "ADD_CHANNEL_ID_HERE",
-    "thighfuck": "ADD_CHANNEL_ID_HERE",
-    "strip": "ADD_CHANNEL_ID_HERE"
+    "tease": "1374997829814063165",
+    "legspread": "1374998253426180116",
+    "choke": "1374998299702202430",
+    "bite": "1374998343956303924",
+    "lick": "1374998369373524040",
+    "strip": "1374998973739438214"
 }
 
 # Non-NSFW responses
@@ -328,11 +310,11 @@ non_nsfw_responses = {
 }
 
 non_nsfw_channel_map = {
-    "kiss": "ADD_CHANNEL_ID_HERE",
-    "cuddle": "ADD_CHANNEL_ID_HERE",
-    "hug": "ADD_CHANNEL_ID_HERE",
-    "cry": "ADD_CHANNEL_ID_HERE",
-    "slap": "ADD_CHANNEL_ID_HERE"
+    "kiss": "1374992686808957050",
+    "cuddle": "1374992738264813589",
+    "hug": "1374992767234867273",
+    "cry": "1374992832418414613",
+    "slap": "1374992799178559549"
 }
 
 def save_urls(gif_urls, filename="gif_urls.json"):
