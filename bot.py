@@ -111,11 +111,16 @@ non_nsfw_channel_map = {
     "slap": "1374992799178559549"
 }
 
-# Fetch URLs with retry
+# Fetch URLs with retry and authentication
 async def fetch_urls(url, max_retries=3):
+    if not GITHUB_TOKEN:
+        print("GITHUB_TOKEN not set. Cannot fetch URLs from GitHub.")
+        return {cmd: [] for cmd in (list(roleplay_responses.keys()) if url == RAW_NSFW_GIF_URL else list(non_nsfw_responses.keys()))}
+    
+    headers = {"Authorization": f"token {GITHUB_TOKEN}"}
     for attempt in range(max_retries):
         try:
-            response = await asyncio.to_thread(requests.get, url, timeout=10)
+            response = await asyncio.to_thread(requests.get, url, headers=headers, timeout=10)
             response.raise_for_status()
             return response.json()
         except Exception as e:
@@ -127,10 +132,25 @@ async def fetch_urls(url, max_retries=3):
 
 # Update GitHub file
 def update_github_file(file_path, content, commit_message):
+    if not GITHUB_TOKEN:
+        print("GITHUB_TOKEN not set. Cannot update GitHub file.")
+        return
+    
     try:
         headers = {"Authorization": f"token {GITHUB_TOKEN}", "Accept": "application/vnd.github.v3+json"}
         url = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{file_path}"
         response = requests.get(url, headers=headers)
+        if response.status_code == 404:  # File doesn't exist, create it
+            data = {
+                "message": commit_message,
+                "content": base64.b64encode(json.dumps(content, indent=4).encode()).decode(),
+                "branch": "main"
+            }
+            response = requests.put(url, headers=headers, json=data)
+            response.raise_for_status()
+            print(f"Created {file_path} on GitHub")
+            return
+        
         response.raise_for_status()
         sha = response.json()["sha"]
 
@@ -277,6 +297,9 @@ async def start_health_server():
 
 # Main function
 async def main():
+    if not os.getenv("DISCORD_TOKEN"):
+        print("DISCORD_TOKEN not set. Cannot start the bot.")
+        return
     await asyncio.gather(
         bot.start(os.getenv("DISCORD_TOKEN")),
         start_health_server()
