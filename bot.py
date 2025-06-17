@@ -188,7 +188,10 @@ async def on_message(message):
     if message.author == bot.user:
         return
 
+    print(f"Received message: {message.content} from {message.author} in channel {message.channel.id}")
+
     # Handle GIF uploads
+    is_gif_upload = False
     for command, channel_id in channel_map.items():
         if str(message.channel.id) == channel_id and message.attachments:
             for attachment in message.attachments:
@@ -199,6 +202,7 @@ async def on_message(message):
                         nsfw_gif_urls[command].append(attachment.url)
                         update_github_file(NSFW_GIF_FILE_PATH, nsfw_gif_urls, f"Add GIF for {command}")
                         await message.channel.send(f"Added {attachment.filename} to {command} GIFs!")
+                    is_gif_upload = True
                     break
 
     for command, channel_id in non_nsfw_channel_map.items():
@@ -211,11 +215,17 @@ async def on_message(message):
                         non_nsfw_gif_urls[command].append(attachment.url)
                         update_github_file(NON_NSFW_GIF_FILE_PATH, non_nsfw_gif_urls, f"Add GIF for {command}")
                         await message.channel.send(f"Added {attachment.filename} to {command} GIFs!")
+                    is_gif_upload = True
                     break
 
-# NSFW roleplay command
-for cmd in roleplay_responses.keys():
-    async def roleplay_command(ctx, member: discord.Member = None, cmd=cmd):  # Capture cmd in closure
+    # Process commands if the message is not a GIF upload
+    if not is_gif_upload:
+        await bot.process_commands(message)
+
+# NSFW roleplay command factory
+def create_roleplay_command(cmd):
+    @bot.command(name=cmd)
+    async def roleplay_command(ctx, member: discord.Member = None):
         print(f"Processing NSFW command: {cmd} by {ctx.author}")
         if not ctx.channel.nsfw:
             await ctx.send("This command can only be used in NSFW channels! 🔞")
@@ -236,11 +246,12 @@ for cmd in roleplay_responses.keys():
         except Exception as e:
             print(f"Error in NSFW command {cmd}: {e}")
             await ctx.send("An error occurred while processing the command.")
-    bot.command(name=cmd)(roleplay_command)
+    return roleplay_command
 
-# Non-NSFW command
-for cmd in non_nsfw_responses.keys():
-    async def non_nsfw_command(ctx, member: discord.Member = None, cmd=cmd):  # Capture cmd in closure
+# Non-NSFW command factory
+def create_non_nsfw_command(cmd):
+    @bot.command(name=cmd)
+    async def non_nsfw_command(ctx, member: discord.Member = None):
         print(f"Processing non-NSFW command: {cmd} by {ctx.author}")
         if member is None:
             await ctx.send(f"Please mention someone to {cmd}!")
@@ -258,7 +269,14 @@ for cmd in non_nsfw_responses.keys():
         except Exception as e:
             print(f"Error in non-NSFW command {cmd}: {e}")
             await ctx.send("An error occurred while processing the command.")
-    bot.command(name=cmd)(non_nsfw_command)
+    return non_nsfw_command
+
+# Register commands
+for cmd in roleplay_responses.keys():
+    create_roleplay_command(cmd)
+
+for cmd in non_nsfw_responses.keys():
+    create_non_nsfw_command(cmd)
 
 # Help command
 @bot.command()
