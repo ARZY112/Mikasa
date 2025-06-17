@@ -182,7 +182,7 @@ async def reload_gif_urls():
         await load_urls()
         print("GIF URLs reloaded")
 
-# Handle message events (removed bot.process_commands to fix double response)
+# Handle message events
 @bot.event
 async def on_message(message):
     if message.author == bot.user:
@@ -213,63 +213,57 @@ async def on_message(message):
                         await message.channel.send(f"Added {attachment.filename} to {command} GIFs!")
                     break
 
-    # Removed bot.process_commands to prevent double processing
-
-# NSFW channel check
-def is_nsfw_channel():
-    async def predicate(ctx):
+# NSFW roleplay command
+for cmd in roleplay_responses.keys():
+    async def roleplay_command(ctx, member: discord.Member = None, cmd=cmd):  # Capture cmd in closure
+        print(f"Processing NSFW command: {cmd} by {ctx.author}")
         if not ctx.channel.nsfw:
             await ctx.send("This command can only be used in NSFW channels! 🔞")
-            return False
-        return True
-    return commands.check(predicate)
-
-# Create roleplay command
-def create_roleplay_command(command_name):
-    async def roleplay_command(ctx, member: discord.Member = None):
-        if member is None:
-            await ctx.send(f"Please mention someone to {command_name}!")
             return
-        response = random.choice(roleplay_responses[command_name]).format(user=ctx.author.mention, target=member.mention)
-        embed = discord.Embed(title=f"{command_name.capitalize()}!", description=response, color=discord.Color.red())
-        if nsfw_gif_urls.get(command_name) and len(nsfw_gif_urls[command_name]) > 0:
-            gif = random.choice(nsfw_gif_urls[command_name])
-            embed.set_image(url=gif)
-        else:
-            embed.set_footer(text="No GIFs found for this command!")
-            embed.set_image(url="https://media.giphy.com/media/3o7btPCcdNniyf0ArS/giphy.gif")
-        await ctx.send(embed=embed)
-    roleplay_command.__name__ = command_name
-    return roleplay_command
-
-# Create non-NSFW command
-def create_non_nsfw_command(command_name):
-    async def non_nsfw_command(ctx, member: discord.Member = None):
         if member is None:
-            await ctx.send(f"Please mention someone to {command_name}!")
+            await ctx.send(f"Please mention someone to {cmd}!")
             return
-        response = non_nsfw_responses[command_name].format(user=ctx.author.mention, target=member.mention)
-        embed = discord.Embed(title=f"{command_name.capitalize()}!", description=response, color=discord.Color.blue())
-        if non_nsfw_gif_urls.get(command_name) and len(non_nsfw_gif_urls[command_name]) > 0:
-            gif = random.choice(non_nsfw_gif_urls[command_name])
-            embed.set_image(url=gif)
-        else:
-            embed.set_footer(text="No GIFs found for this command!")
-            embed.set_image(url="https://media.giphy.com/media/26ufnwz3wDUli7GU0/giphy.gif")
-        await ctx.send(embed=embed)
-    non_nsfw_command.__name__ = command_name
-    return non_nsfw_command
+        try:
+            response = random.choice(roleplay_responses[cmd]).format(user=ctx.author.mention, target=member.mention)
+            embed = discord.Embed(title=f"{cmd.capitalize()}!", description=response, color=discord.Color.red())
+            if nsfw_gif_urls.get(cmd) and len(nsfw_gif_urls[cmd]) > 0:
+                gif = random.choice(nsfw_gif_urls[cmd])
+                embed.set_image(url=gif)
+            else:
+                embed.set_footer(text="No GIFs found for this command!")
+                embed.set_image(url="https://media.giphy.com/media/3o7btPCcdNniyf0ArS/giphy.gif")
+            await ctx.send(embed=embed)
+        except Exception as e:
+            print(f"Error in NSFW command {cmd}: {e}")
+            await ctx.send("An error occurred while processing the command.")
+    bot.command(name=cmd)(roleplay_command)
 
-# Register commands
-for cmd in roleplay_responses.keys():
-    bot.command()(is_nsfw_channel()(create_roleplay_command(cmd)))
-
+# Non-NSFW command
 for cmd in non_nsfw_responses.keys():
-    bot.command()(create_non_nsfw_command(cmd))
+    async def non_nsfw_command(ctx, member: discord.Member = None, cmd=cmd):  # Capture cmd in closure
+        print(f"Processing non-NSFW command: {cmd} by {ctx.author}")
+        if member is None:
+            await ctx.send(f"Please mention someone to {cmd}!")
+            return
+        try:
+            response = non_nsfw_responses[cmd].format(user=ctx.author.mention, target=member.mention)
+            embed = discord.Embed(title=f"{cmd.capitalize()}!", description=response, color=discord.Color.blue())
+            if non_nsfw_gif_urls.get(cmd) and len(non_nsfw_gif_urls[cmd]) > 0:
+                gif = random.choice(non_nsfw_gif_urls[cmd])
+                embed.set_image(url=gif)
+            else:
+                embed.set_footer(text="No GIFs found for this command!")
+                embed.set_image(url="https://media.giphy.com/media/26ufnwz3wDUli7GU0/giphy.gif")
+            await ctx.send(embed=embed)
+        except Exception as e:
+            print(f"Error in non-NSFW command {cmd}: {e}")
+            await ctx.send("An error occurred while processing the command.")
+    bot.command(name=cmd)(non_nsfw_command)
 
 # Help command
 @bot.command()
 async def help(ctx):
+    print(f"Processing help command by {ctx.author}")
     embed = discord.Embed(title="Mikasa Command List 📜", color=discord.Color.green())
     nsfw_commands = sorted(roleplay_responses.keys())
     non_nsfw_commands = sorted(non_nsfw_responses.keys())
