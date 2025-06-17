@@ -14,12 +14,12 @@ intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents, help_command=None)
 
 # GitHub URLs for persistent storage
-RAW_NSFW_GIF_URL = "https://raw.githubusercontent.com/ARZY112/Mikku/main/nsfw_gif_urls.json"
-RAW_NON_NSFW_GIF_URL = "https://raw.githubusercontent.com/ARZY112/Mikku/main/non_nsfw_gif_urls.json"
+RAW_NSFW_GIF_URL = "https://raw.githubusercontent.com/ARZY112/Mikasa/main/nsfw_gif_urls.json"
+RAW_NON_NSFW_GIF_URL = "https://raw.githubusercontent.com/ARZY112/Mikasa/main/non_nsfw_gif_urls.json"
 
 # GitHub API setup
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
-GITHUB_REPO = "ARZY112/Mikku"
+GITHUB_REPO = "ARZY112/Mikasa"
 NSFW_GIF_FILE_PATH = "nsfw_gif_urls.json"
 NON_NSFW_GIF_FILE_PATH = "non_nsfw_gif_urls.json"
 
