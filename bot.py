@@ -118,6 +118,7 @@ def fetch_urls(url):
         return response.json()
     except Exception as e:
         print(f"Failed to fetch URLs from {url}: {e}")
+        # Return empty dict with command keys if fetch fails
         return {cmd: [] for cmd in (list(roleplay_responses.keys()) if url == RAW_NSFW_GIF_URL else list(non_nsfw_responses.keys()))}
 
 def update_github_file(file_path, content, commit_message):
