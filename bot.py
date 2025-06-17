@@ -182,7 +182,7 @@ async def reload_gif_urls():
         await load_urls()
         print("GIF URLs reloaded")
 
-# Handle message events
+# Handle message events (removed bot.process_commands to fix double response)
 @bot.event
 async def on_message(message):
     if message.author == bot.user:
@@ -213,7 +213,7 @@ async def on_message(message):
                         await message.channel.send(f"Added {attachment.filename} to {command} GIFs!")
                     break
 
-    await bot.process_commands(message)
+    # Removed bot.process_commands to prevent double processing
 
 # NSFW channel check
 def is_nsfw_channel():
