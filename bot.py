@@ -111,15 +111,19 @@ non_nsfw_channel_map = {
     "slap": "1374992799178559549"
 }
 
-# Fetch URLs from GitHub
-def fetch_urls(url):
-    try:
-        response = requests.get(url)
-        response.raise_for_status()
-        return response.json()
-    except Exception as e:
-        print(f"Failed to fetch URLs from {url}: {e}")
-        return {cmd: [] for cmd in (list(roleplay_responses.keys()) if url == RAW_NSFW_GIF_URL else list(non_nsfw_responses.keys()))}
+# Fetch URLs with retry
+def fetch_urls(url, max_retries=3):
+    for attempt in range(max_retries):
+        try:
+            response = requests.get(url, timeout=10)
+            response.raise_for_status()
+            return response.json()
+        except Exception as e:
+            print(f"Attempt {attempt + 1}/{max_retries} failed to fetch URLs from {url}: {e}")
+            if attempt == max_retries - 1:
+                print(f"All attempts failed for {url}")
+                return {cmd: [] for cmd in (list(roleplay_responses.keys()) if url == RAW_NSFW_GIF_URL else list(non_nsfw_responses.keys()))}
+            await asyncio.sleep(2 ** attempt)  # Exponential backoff
 
 # Update GitHub file
 def update_github_file(file_path, content, commit_message):
@@ -145,6 +149,15 @@ def update_github_file(file_path, content, commit_message):
 # Load URLs
 nsfw_gif_urls = fetch_urls(RAW_NSFW_GIF_URL)
 non_nsfw_gif_urls = fetch_urls(RAW_NON_NSFW_GIF_URL)
+
+# Periodic GIF reload task
+async def reload_gif_urls():
+    while True:
+        await asyncio.sleep(300)  # Check every 5 minutes
+        global nsfw_gif_urls, non_nsfw_gif_urls
+        nsfw_gif_urls = fetch_urls(RAW_NSFW_GIF_URL)
+        non_nsfw_gif_urls = fetch_urls(RAW_NON_NSFW_GIF_URL)
+        print("GIF URLs reloaded")
 
 # Handle message events
 @bot.event
@@ -246,6 +259,7 @@ async def help(ctx):
 @bot.event
 async def on_ready():
     print(f"{bot.user.name} is ready and online!")
+    bot.loop.create_task(reload_gif_urls())  # Start GIF reload task
 
 # Health check
 async def health_check(request):
