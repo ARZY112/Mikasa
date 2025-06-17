@@ -56,9 +56,8 @@ roleplay_responses = {
     "lick": ["{user} is licking {target} hard."],
     "strip": ["{user} is ripping {target}'s clothes off."]
 }
- 
 
-# Channel map for NSFW commands (grind and thighfuck removed, new IDs added)
+# Channel map for NSFW commands
 channel_map = {
     "assfuck": "1374374128831697040",
     "facefuck": "1374374913036648498",
@@ -102,7 +101,7 @@ non_nsfw_responses = {
     "slap": "{user} slaps {target} playfully. 👋"
 }
 
-# Non-NSFW channel map (updated with new IDs)
+# Non-NSFW channel map
 non_nsfw_channel_map = {
     "kiss": "1374992686808957050",
     "cuddle": "1374992738264813589",
@@ -123,7 +122,6 @@ def fetch_urls(url):
 
 def update_github_file(file_path, content, commit_message):
     try:
-        # Get the current file SHA
         headers = {
             "Authorization": f"token {GITHUB_TOKEN}",
             "Accept": "application/vnd.github.v3+json"
@@ -133,7 +131,6 @@ def update_github_file(file_path, content, commit_message):
         response.raise_for_status()
         sha = response.json()["sha"]
 
-        # Update the file
         data = {
             "message": commit_message,
             "content": base64.b64encode(json.dumps(content, indent=4).encode()).decode(),
@@ -154,8 +151,10 @@ non_nsfw_gif_urls = fetch_urls(RAW_NON_NSFW_GIF_URL)
 async def on_message(message):
     if message.author == bot.user:
         return
+
+    # Handle GIF uploads
     for command, channel_id in channel_map.items():
-        if str(message.channel.id) == channel_id:
+        if str(message.channel.id) == channel_id and message.attachments:
             for attachment in message.attachments:
                 if attachment.filename.endswith((".gif", ".png", ".jpg", ".jpeg")):
                     if command not in nsfw_gif_urls:
@@ -165,8 +164,9 @@ async def on_message(message):
                         update_github_file(NSFW_GIF_FILE_PATH, nsfw_gif_urls, f"Add GIF for {command}")
                         await message.channel.send(f"Added {attachment.filename} to {command} GIFs!")
                     break
+
     for command, channel_id in non_nsfw_channel_map.items():
-        if str(message.channel.id) == channel_id:
+        if str(message.channel.id) == channel_id and message.attachments:
             for attachment in message.attachments:
                 if attachment.filename.endswith((".gif", ".png", ".jpg", ".jpeg")):
                     if command not in non_nsfw_gif_urls:
@@ -176,6 +176,7 @@ async def on_message(message):
                         update_github_file(NON_NSFW_GIF_FILE_PATH, non_nsfw_gif_urls, f"Add GIF for {command}")
                         await message.channel.send(f"Added {attachment.filename} to {command} GIFs!")
                     break
+
     await bot.process_commands(message)
 
 def is_nsfw_channel():
@@ -189,11 +190,11 @@ def is_nsfw_channel():
 def create_roleplay_command(command_name):
     async def roleplay_command(ctx, member: discord.Member = None):
         if member is None:
-            await ctx.send(f"Please mention someone to {command_name}! 😊")
+            await ctx.send(f"Please mention someone to {command_name}!")
             return
         response = random.choice(roleplay_responses[command_name]).format(user=ctx.author.mention, target=member.mention)
         embed = discord.Embed(
-            title=f"{command_name.capitalize()}! 🔥",
+            title=f"{command_name.capitalize()}!",
             description=response,
             color=discord.Color.red()
         )
@@ -210,11 +211,11 @@ def create_roleplay_command(command_name):
 def create_non_nsfw_command(command_name):
     async def non_nsfw_command(ctx, member: discord.Member = None):
         if member is None:
-            await ctx.send(f"Please mention someone to {command_name}! 😊")
+            await ctx.send(f"Please mention someone to {command_name}!")
             return
         response = non_nsfw_responses[command_name].format(user=ctx.author.mention, target=member.mention)
         embed = discord.Embed(
-            title=f"{command_name.capitalize()}! 💖",
+            title=f"{command_name.capitalize()}!",
             description=response,
             color=discord.Color.blue()
         )
@@ -244,13 +245,13 @@ async def help(ctx):
     nsfw_commands = sorted(roleplay_responses.keys())
     embed.add_field(
         name="🔞 NSFW Commands (NSFW Channels Only)",
-        value="`" + "`, `".join(nsfw_commands) + "`",
+        value="\n".join([f"`{cmd}`" for cmd in nsfw_commands]),
         inline=False
     )
     non_nsfw_commands = sorted(non_nsfw_responses.keys())
     embed.add_field(
         name="💖 Non-NSFW Commands",
-        value="`" + "`, `".join(non_nsfw_commands) + "`",
+        value="\n".join([f"`{cmd}`" for cmd in non_nsfw_commands]),
         inline=False
     )
     embed.set_footer(text="Use !command @user to interact! Example: !kiss @user")
