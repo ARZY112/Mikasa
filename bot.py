@@ -8,21 +8,22 @@ from aiohttp import web
 import requests
 import base64
 
+# Bot setup
 intents = discord.Intents.default()
 intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents, help_command=None)
 
-# GitHub URLs for persistent storage (replace with your raw URLs)
+# GitHub URLs for persistent storage
 RAW_NSFW_GIF_URL = "https://raw.githubusercontent.com/ARZY112/Mikku/main/nsfw_gif_urls.json"
 RAW_NON_NSFW_GIF_URL = "https://raw.githubusercontent.com/ARZY112/Mikku/main/non_nsfw_gif_urls.json"
 
-# GitHub API setup for updating files
+# GitHub API setup
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
 GITHUB_REPO = "ARZY112/Mikku"
 NSFW_GIF_FILE_PATH = "nsfw_gif_urls.json"
 NON_NSFW_GIF_FILE_PATH = "non_nsfw_gif_urls.json"
 
-# NSFW Roleplay responses (single line per command)
+# NSFW Roleplay responses
 roleplay_responses = {
     "assfuck": ["{user} is fucking {target}'s ass hard."],
     "facefuck": ["{user} is fucking {target}'s mouth deep."],
@@ -110,6 +111,7 @@ non_nsfw_channel_map = {
     "slap": "1374992799178559549"
 }
 
+# Fetch URLs from GitHub
 def fetch_urls(url):
     try:
         response = requests.get(url)
@@ -117,15 +119,12 @@ def fetch_urls(url):
         return response.json()
     except Exception as e:
         print(f"Failed to fetch URLs from {url}: {e}")
-        # Return empty dict with command keys if fetch fails
         return {cmd: [] for cmd in (list(roleplay_responses.keys()) if url == RAW_NSFW_GIF_URL else list(non_nsfw_responses.keys()))}
 
+# Update GitHub file
 def update_github_file(file_path, content, commit_message):
     try:
-        headers = {
-            "Authorization": f"token {GITHUB_TOKEN}",
-            "Accept": "application/vnd.github.v3+json"
-        }
+        headers = {"Authorization": f"token {GITHUB_TOKEN}", "Accept": "application/vnd.github.v3+json"}
         url = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{file_path}"
         response = requests.get(url, headers=headers)
         response.raise_for_status()
@@ -143,10 +142,11 @@ def update_github_file(file_path, content, commit_message):
     except Exception as e:
         print(f"Failed to update {file_path} on GitHub: {e}")
 
-# Load URLs from GitHub
+# Load URLs
 nsfw_gif_urls = fetch_urls(RAW_NSFW_GIF_URL)
 non_nsfw_gif_urls = fetch_urls(RAW_NON_NSFW_GIF_URL)
 
+# Handle message events
 @bot.event
 async def on_message(message):
     if message.author == bot.user:
@@ -179,6 +179,7 @@ async def on_message(message):
 
     await bot.process_commands(message)
 
+# NSFW channel check
 def is_nsfw_channel():
     async def predicate(ctx):
         if not ctx.channel.nsfw:
@@ -187,17 +188,14 @@ def is_nsfw_channel():
         return True
     return commands.check(predicate)
 
+# Create roleplay command
 def create_roleplay_command(command_name):
     async def roleplay_command(ctx, member: discord.Member = None):
         if member is None:
             await ctx.send(f"Please mention someone to {command_name}!")
             return
         response = random.choice(roleplay_responses[command_name]).format(user=ctx.author.mention, target=member.mention)
-        embed = discord.Embed(
-            title=f"{command_name.capitalize()}!",
-            description=response,
-            color=discord.Color.red()
-        )
+        embed = discord.Embed(title=f"{command_name.capitalize()}!", description=response, color=discord.Color.red())
         if nsfw_gif_urls.get(command_name) and len(nsfw_gif_urls[command_name]) > 0:
             gif = random.choice(nsfw_gif_urls[command_name])
             embed.set_image(url=gif)
@@ -208,17 +206,14 @@ def create_roleplay_command(command_name):
     roleplay_command.__name__ = command_name
     return roleplay_command
 
+# Create non-NSFW command
 def create_non_nsfw_command(command_name):
     async def non_nsfw_command(ctx, member: discord.Member = None):
         if member is None:
             await ctx.send(f"Please mention someone to {command_name}!")
             return
         response = non_nsfw_responses[command_name].format(user=ctx.author.mention, target=member.mention)
-        embed = discord.Embed(
-            title=f"{command_name.capitalize()}!",
-            description=response,
-            color=discord.Color.blue()
-        )
+        embed = discord.Embed(title=f"{command_name.capitalize()}!", description=response, color=discord.Color.blue())
         if non_nsfw_gif_urls.get(command_name) and len(non_nsfw_gif_urls[command_name]) > 0:
             gif = random.choice(non_nsfw_gif_urls[command_name])
             embed.set_image(url=gif)
@@ -229,41 +224,34 @@ def create_non_nsfw_command(command_name):
     non_nsfw_command.__name__ = command_name
     return non_nsfw_command
 
+# Register commands
 for cmd in roleplay_responses.keys():
     bot.command()(is_nsfw_channel()(create_roleplay_command(cmd)))
 
 for cmd in non_nsfw_responses.keys():
     bot.command()(create_non_nsfw_command(cmd))
 
+# Help command
 @bot.command()
 async def help(ctx):
-    embed = discord.Embed(
-        title="Mikasa Command List 📜",
-        description="Here are all the commands you can use with Mikasa!",
-        color=discord.Color.green()
-    )
+    embed = discord.Embed(title="Mikasa Command List 📜", color=discord.Color.green())
     nsfw_commands = sorted(roleplay_responses.keys())
-    embed.add_field(
-        name="🔞 NSFW Commands (NSFW Channels Only)",
-        value="\n".join([f"`{cmd}`" for cmd in nsfw_commands]),
-        inline=False
-    )
     non_nsfw_commands = sorted(non_nsfw_responses.keys())
-    embed.add_field(
-        name="💖 Non-NSFW Commands",
-        value="\n".join([f"`{cmd}`" for cmd in non_nsfw_commands]),
-        inline=False
-    )
+    all_commands = nsfw_commands + non_nsfw_commands
+    embed.add_field(name="Commands", value="\n".join([f"`{cmd}`" for cmd in all_commands]), inline=False)
     embed.set_footer(text="Use !command @user to interact! Example: !kiss @user")
     await ctx.send(embed=embed)
 
+# On ready event
 @bot.event
 async def on_ready():
     print(f"{bot.user.name} is ready and online!")
 
+# Health check
 async def health_check(request):
     return web.Response(text="Bot is healthy!")
 
+# Start health server
 async def start_health_server():
     app = web.Application()
     app.add_routes([web.get('/', health_check)])
@@ -272,6 +260,7 @@ async def start_health_server():
     site = web.TCPSite(runner, '0.0.0.0', 8000)
     await site.start()
 
+# Main function
 async def main():
     await asyncio.gather(
         bot.start(os.getenv("DISCORD_TOKEN")),
