@@ -112,10 +112,10 @@ non_nsfw_channel_map = {
 }
 
 # Fetch URLs with retry
-def fetch_urls(url, max_retries=3):
+async def fetch_urls(url, max_retries=3):
     for attempt in range(max_retries):
         try:
-            response = requests.get(url, timeout=10)
+            response = await asyncio.to_thread(requests.get, url, timeout=10)
             response.raise_for_status()
             return response.json()
         except Exception as e:
@@ -147,16 +147,16 @@ def update_github_file(file_path, content, commit_message):
         print(f"Failed to update {file_path} on GitHub: {e}")
 
 # Load URLs
-nsfw_gif_urls = fetch_urls(RAW_NSFW_GIF_URL)
-non_nsfw_gif_urls = fetch_urls(RAW_NON_NSFW_GIF_URL)
+async def load_urls():
+    global nsfw_gif_urls, non_nsfw_gif_urls
+    nsfw_gif_urls = await fetch_urls(RAW_NSFW_GIF_URL)
+    non_nsfw_gif_urls = await fetch_urls(RAW_NON_NSFW_GIF_URL)
 
 # Periodic GIF reload task
 async def reload_gif_urls():
     while True:
         await asyncio.sleep(300)  # Check every 5 minutes
-        global nsfw_gif_urls, non_nsfw_gif_urls
-        nsfw_gif_urls = fetch_urls(RAW_NSFW_GIF_URL)
-        non_nsfw_gif_urls = fetch_urls(RAW_NON_NSFW_GIF_URL)
+        await load_urls()
         print("GIF URLs reloaded")
 
 # Handle message events
@@ -259,6 +259,7 @@ async def help(ctx):
 @bot.event
 async def on_ready():
     print(f"{bot.user.name} is ready and online!")
+    await load_urls()  # Load URLs on startup
     bot.loop.create_task(reload_gif_urls())  # Start GIF reload task
 
 # Health check
