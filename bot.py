@@ -13,10 +13,6 @@ intents = discord.Intents.default()
 intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents, help_command=None)
 
-# GitHub URLs for persistent storage
-RAW_NSFW_GIF_URL = "https://raw.githubusercontent.com/ARZY112/Mikasa/main/nsfw_gif_urls.json"
-RAW_NON_NSFW_GIF_URL = "https://raw.githubusercontent.com/ARZY112/Mikasa/main/non_nsfw_gif_urls.json"
-
 # GitHub API setup
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
 GITHUB_REPO = "ARZY112/Mikasa"
@@ -111,23 +107,30 @@ non_nsfw_channel_map = {
     "slap": "1374992799178559549"
 }
 
-# Fetch URLs with retry and authentication
-async def fetch_urls(url, max_retries=3):
+# Fetch URLs using GitHub API for private repo
+async def fetch_urls(file_path, max_retries=3):
     if not GITHUB_TOKEN:
         print("GITHUB_TOKEN not set. Cannot fetch URLs from GitHub.")
-        return {cmd: [] for cmd in (list(roleplay_responses.keys()) if url == RAW_NSFW_GIF_URL else list(non_nsfw_responses.keys()))}
+        return {cmd: [] for cmd in (list(roleplay_responses.keys()) if file_path == NSFW_GIF_FILE_PATH else list(non_nsfw_responses.keys()))}
     
-    headers = {"Authorization": f"token {GITHUB_TOKEN}"}
+    headers = {"Authorization": f"token {GITHUB_TOKEN}", "Accept": "application/vnd.github.v3+json"}
+    url = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{file_path}?ref=main"
+    
     for attempt in range(max_retries):
         try:
             response = await asyncio.to_thread(requests.get, url, headers=headers, timeout=10)
             response.raise_for_status()
-            return response.json()
+            file_data = response.json()
+            content = base64.b64decode(file_data["content"]).decode("utf-8")
+            print(f"Successfully fetched {file_path} from GitHub API")
+            return json.loads(content)
         except Exception as e:
-            print(f"Attempt {attempt + 1}/{max_retries} failed to fetch URLs from {url}: {e}")
+            print(f"Attempt {attempt + 1}/{max_retries} failed to fetch {file_path} from GitHub API: {e}")
+            if hasattr(response, 'status_code'):
+                print(f"Response status: {response.status_code}, Response text: {response.text}")
             if attempt == max_retries - 1:
-                print(f"All attempts failed for {url}")
-                return {cmd: [] for cmd in (list(roleplay_responses.keys()) if url == RAW_NSFW_GIF_URL else list(non_nsfw_responses.keys()))}
+                print(f"All attempts failed for {file_path}")
+                return {cmd: [] for cmd in (list(roleplay_responses.keys()) if file_path == NSFW_GIF_FILE_PATH else list(non_nsfw_responses.keys()))}
             await asyncio.sleep(2 ** attempt)  # Exponential backoff
 
 # Update GitHub file
@@ -169,8 +172,8 @@ def update_github_file(file_path, content, commit_message):
 # Load URLs
 async def load_urls():
     global nsfw_gif_urls, non_nsfw_gif_urls
-    nsfw_gif_urls = await fetch_urls(RAW_NSFW_GIF_URL)
-    non_nsfw_gif_urls = await fetch_urls(RAW_NON_NSFW_GIF_URL)
+    nsfw_gif_urls = await fetch_urls(NSFW_GIF_FILE_PATH)
+    non_nsfw_gif_urls = await fetch_urls(NON_NSFW_GIF_FILE_PATH)
 
 # Periodic GIF reload task
 async def reload_gif_urls():
